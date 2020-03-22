@@ -20,7 +20,7 @@ composer require nikolaposa/rate-limit-middleware
 
 ## Usage
 
-**Mezzio example**
+**[Mezzio](https://docs.mezzio.dev/mezzio/) example**
 
 ```php
 use RateLimit\Middleware\RateLimitMiddleware;
