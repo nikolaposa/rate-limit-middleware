@@ -14,11 +14,15 @@ use RateLimit\Middleware\RateLimitMiddleware;
 use RateLimit\Middleware\ResolveIpAddressAsUserIdentity;
 use RateLimit\Middleware\Tests\TestAsset\InMemoryRateLimiter;
 use RateLimit\Rate;
+use RateLimit\SilentRateLimiter;
 
 class RateLimitMiddlewareTest extends TestCase
 {
-    /** @var RateLimitMiddleware */
-    protected $rateLimitMiddleware;
+    /** @var SilentRateLimiter */
+    protected $rateLimiter;
+
+    /** @var RequestHandlerInterface */
+    protected $limitExceededHandler;
 
     /** @var ServerRequestFactory */
     protected $requestFactory;
@@ -28,18 +32,13 @@ class RateLimitMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->rateLimitMiddleware = new RateLimitMiddleware(
-            new InMemoryRateLimiter(),
-            'api',
-            Rate::perMinute(3),
-            new ResolveIpAddressAsUserIdentity(),
-            new class implements RequestHandlerInterface {
-                public function handle(ServerRequestInterface $request): ResponseInterface
-                {
-                    return new JsonResponse(['error' => 'Too many requests'], 429);
-                }
+        $this->rateLimiter = new InMemoryRateLimiter();
+        $this->limitExceededHandler = new class implements RequestHandlerInterface {
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                return new JsonResponse(['error' => 'Too many requests'], 429);
             }
-        );
+        };
         $this->requestFactory = new ServerRequestFactory();
         $this->requestHandler = new class implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
@@ -54,9 +53,17 @@ class RateLimitMiddlewareTest extends TestCase
      */
     public function it_sets_rate_limit_headers(): void
     {
+        $rateLimitMiddleware = new RateLimitMiddleware(
+            $this->rateLimiter,
+            'api',
+            Rate::perMinute(3),
+            new ResolveIpAddressAsUserIdentity(),
+            $this->limitExceededHandler
+        );
+
         $request = $this->requestFactory->createServerRequest('POST', '/api/posts');
 
-        $response = $this->rateLimitMiddleware->process($request, $this->requestHandler);
+        $response = $rateLimitMiddleware->process($request, $this->requestHandler);
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame('3', $response->getHeaderLine(RateLimitMiddleware::HEADER_LIMIT));
@@ -69,10 +76,17 @@ class RateLimitMiddlewareTest extends TestCase
      */
     public function it_sets_appropriate_response_status_when_limit_is_reached(): void
     {
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
-        $response = $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
+        $rateLimitMiddleware = new RateLimitMiddleware(
+            $this->rateLimiter,
+            'api',
+            Rate::perMinute(2),
+            new ResolveIpAddressAsUserIdentity(),
+            $this->limitExceededHandler
+        );
+
+        $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
+        $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
+        $response = $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/posts'), $this->requestHandler);
 
         $this->assertSame(429, $response->getStatusCode());
         $this->assertSame('0', $response->getHeaderLine(RateLimitMiddleware::HEADER_REMAINING));
@@ -84,16 +98,11 @@ class RateLimitMiddlewareTest extends TestCase
     public function it_resets_limit_after_rate_interval(): void
     {
         $rateLimitMiddleware = new RateLimitMiddleware(
-            new InMemoryRateLimiter(),
+            $this->rateLimiter,
             'api_create_user',
             Rate::perSecond(1),
             new ResolveIpAddressAsUserIdentity(),
-            new class implements RequestHandlerInterface {
-                public function handle(ServerRequestInterface $request): ResponseInterface
-                {
-                    return new JsonResponse(['error' => 'Too many requests'], 429);
-                }
-            }
+            $this->limitExceededHandler
         );
 
         $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
@@ -109,8 +118,16 @@ class RateLimitMiddlewareTest extends TestCase
      */
     public function it_invokes_limit_exceeded_handler(): void
     {
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
-        $response = $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
+        $rateLimitMiddleware = new RateLimitMiddleware(
+            $this->rateLimiter,
+            'api_create_user',
+            Rate::perSecond(1),
+            new ResolveIpAddressAsUserIdentity(),
+            $this->limitExceededHandler
+        );
+
+        $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
+        $response = $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
 
         $this->assertInstanceOf(JsonResponse::class, $response);
         $this->assertSame(429, $response->getStatusCode());
