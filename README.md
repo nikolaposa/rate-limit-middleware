@@ -23,7 +23,8 @@ composer require nikolaposa/rate-limit-middleware
 **Mezzio example**
 
 ```php
-use RateLimit\Http\RateLimitMiddleware;
+use RateLimit\Middleware\RateLimitMiddleware;
+use RateLimit\Middleware\ResolveIpAddressAsUserIdentity;
 use RateLimit\Rate;
 use RateLimit\RedisRateLimiter;
 use Redis;
