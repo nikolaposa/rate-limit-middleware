@@ -1,0 +1,58 @@
+{
+  "name": "nikolaposa/rate-limit-middleware",
+  "description": "PSR-15 middleware for rate limiting API or other application endpoints.",
+  "type": "library",
+  "license": "MIT",
+  "keywords": [
+    "rate limit",
+    "psr-15",
+    "middleware"
+  ],
+  "authors": [
+    {
+      "name": "Nikola Poša",
+      "email": "posa.nikola@gmail.com",
+      "homepage": "https://www.nikolaposa.in.rs"
+    }
+  ],
+  "config": {
+    "sort-packages": true
+  },
+  "require": {
+    "php": "^7.2",
+    "beberlei/assert": "^3.2",
+    "nikolaposa/rate-limit": "@dev",
+    "psr/http-server-middleware": "^1.0"
+  },
+  "require-dev": {
+    "friendsofphp/php-cs-fixer": "^2.1",
+    "laminas/laminas-diactoros": "^2.2",
+    "phpstan/phpstan": "^0.12.10",
+    "phpstan/phpstan-beberlei-assert": "^0.12.2",
+    "phpstan/phpstan-phpunit": "^0.12.6",
+    "phpunit/phpunit": "^8.0"
+  },
+  "provide": {
+    "psr/http-server-middleware-implementation": "1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "RateLimit\\Middleware\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "RateLimit\\Middleware\\Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --colors=always",
+    "cs-fix": "php-cs-fixer fix --config=.php_cs",
+    "stan": "phpstan analyse"
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-master": "2.0.x-dev"
+    }
+  }
+}
