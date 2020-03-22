@@ -38,7 +38,7 @@ $rateLimitRequestHandler = new class implements RequestHandlerInterface {
 };
 
 $app->route('/user/register', [
-    RateLimitMiddleware(
+    new RateLimitMiddleware(
         $rateLimiter,
         'user_register',
         Rate::perSecond(10),
@@ -50,7 +50,7 @@ $app->route('/user/register', [
 
 $app->route('/api/[{resource:[a-f0-9]{32}}]', [
     AuthenticationMiddleware::class,
-    RateLimitMiddleware(
+    new RateLimitMiddleware(
         $rateLimiter,
         'api',
         Rate::perMinute(20),
