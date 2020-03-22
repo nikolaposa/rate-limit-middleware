@@ -20,40 +20,45 @@ composer require nikolaposa/rate-limit-middleware
 
 ## Usage
 
-**Laminas example**
+**Mezzio example**
 
 ```php
-use Laminas\Diactoros\Response;
-use Laminas\Diactoros\Server;
-use Laminas\Stratigility\Middleware\NotFoundHandler;
-use Laminas\Stratigility\MiddlewarePipe;
 use RateLimit\Http\RateLimitMiddleware;
 use RateLimit\Rate;
 use RateLimit\RedisRateLimiter;
 use Redis;
 
-$rateLimitMiddleware = new RateLimitMiddleware(
-    new RedisRateLimiter(new Redis()),
-    '',
-    new GetRateViaPathPatternMap([
-        '|/api/.+|' => Rate::perMinute(20),
-    ]),
-    new ResolveIpAddressAsUserIdentity(),
-    new class implements RequestHandlerInterface {
-        public function handle(ServerRequestInterface $request): ResponseInterface
-        {
-            return new JsonResponse(['error' => 'Too many requests']);
-        }
-    }
-);
+$rateLimiter = new RedisRateLimiter(new Redis());
 
-$app = new MiddlewarePipe();
-$app->pipe($rateLimitMiddleware);
+$rateLimitRequestHandler = new class implements RequestHandlerInterface {
+   public function handle(ServerRequestInterface $request): ResponseInterface
+   {
+       return new JsonResponse(['error' => 'Too many requests']);
+   }
+};
 
-$server = Server::createServer([$app, 'handle'], $_SERVER, $_GET, $_POST, $_COOKIE, $_FILES);
-$server->listen(function ($req, $res) {
-    return $res;
-});
+$app->route('/user/register', [
+    RateLimitMiddleware(
+        $rateLimiter,
+        'user_register',
+        Rate::perSecond(10),
+        new ResolveIpAddressAsUserIdentity(),
+        $rateLimitRequestHandler
+    ),
+    UserRegistrationHandler::class,
+], ['POST']);
+
+$app->route('/api/[{resource:[a-f0-9]{32}}]', [
+    AuthenticationMiddleware::class,
+    RateLimitMiddleware(
+        $rateLimiter,
+        'api',
+        Rate::perMinute(20),
+        new ResolveIpAddressAsUserIdentity(),
+        $rateLimitRequestHandler
+    ),
+    ApiMiddleware::class,
+], ['GET', 'POST', 'PATCH', 'DELETE']);
 ```
 
 ## Credits

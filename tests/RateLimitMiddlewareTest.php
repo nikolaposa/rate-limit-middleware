@@ -10,7 +10,6 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
-use RateLimit\Middleware\GetRateViaPathPatternMap;
 use RateLimit\Middleware\RateLimitMiddleware;
 use RateLimit\Middleware\ResolveIpAddressAsUserIdentity;
 use RateLimit\Middleware\Tests\TestAsset\InMemoryRateLimiter;
@@ -31,10 +30,8 @@ class RateLimitMiddlewareTest extends TestCase
     {
         $this->rateLimitMiddleware = new RateLimitMiddleware(
             new InMemoryRateLimiter(),
-            new GetRateViaPathPatternMap([
-                '|/api/posts|' => Rate::perMinute(3),
-                '|/api/users|' => Rate::perSecond(1),
-            ]),
+            'api',
+            Rate::perMinute(3),
             new ResolveIpAddressAsUserIdentity(),
             new class implements RequestHandlerInterface {
                 public function handle(ServerRequestInterface $request): ResponseInterface
@@ -86,10 +83,23 @@ class RateLimitMiddlewareTest extends TestCase
      */
     public function it_resets_limit_after_rate_interval(): void
     {
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
-        $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
+        $rateLimitMiddleware = new RateLimitMiddleware(
+            new InMemoryRateLimiter(),
+            'api_create_user',
+            Rate::perSecond(1),
+            new ResolveIpAddressAsUserIdentity(),
+            new class implements RequestHandlerInterface {
+                public function handle(ServerRequestInterface $request): ResponseInterface
+                {
+                    return new JsonResponse(['error' => 'Too many requests'], 429);
+                }
+            }
+        );
+
+        $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
+        $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
         sleep(2);
-        $response = $this->rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
+        $response = $rateLimitMiddleware->process($this->requestFactory->createServerRequest('POST', '/api/users'), $this->requestHandler);
 
         $this->assertSame(200, $response->getStatusCode());
     }

@@ -8,6 +8,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
+use RateLimit\Rate;
 use RateLimit\SilentRateLimiter;
 use RateLimit\Status;
 
@@ -20,8 +21,11 @@ final class RateLimitMiddleware implements MiddlewareInterface
     /** @var SilentRateLimiter */
     private $rateLimiter;
 
-    /** @var GetRate */
-    private $getRate;
+    /** @var string */
+    private $endpointName;
+
+    /** @var Rate */
+    private $rate;
 
     /** @var ResolveUserIdentity */
     private $resolveUserIdentity;
@@ -31,33 +35,36 @@ final class RateLimitMiddleware implements MiddlewareInterface
 
     public function __construct(
         SilentRateLimiter $rateLimiter,
-        GetRate $getRate,
+        string $endpointName,
+        Rate $rate,
         ResolveUserIdentity $resolveUserIdentity,
         RequestHandlerInterface $limitExceededHandler
     ) {
         $this->rateLimiter = $rateLimiter;
-        $this->getRate = $getRate;
+        $this->endpointName = $endpointName;
+        $this->rate = $rate;
         $this->resolveUserIdentity = $resolveUserIdentity;
         $this->limitExceededHandler = $limitExceededHandler;
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $rate = $this->getRate->forRequest($request);
+        $identifier = $this->getIdentifier($request);
 
-        if (null === $rate) {
-            return $handler->handle($request);
-        }
-
-        $identifier = $this->resolveUserIdentity->fromRequest($request);
-
-        $status = $this->rateLimiter->limitSilently($identifier, $rate);
+        $status = $this->rateLimiter->limitSilently($identifier, $this->rate);
 
         $response = $status->limitExceeded()
             ? $this->limitExceededHandler->handle($request)->withStatus(429)
             : $handler->handle($request);
 
         return $this->setRateLimitHeaders($response, $status);
+    }
+
+    private function getIdentifier(ServerRequestInterface $request): string
+    {
+        $userIdentity = $this->resolveUserIdentity->fromRequest($request);
+
+        return trim("{$this->endpointName}:$userIdentity", ':');
     }
 
     private function setRateLimitHeaders(ResponseInterface $response, Status $rateLimitStatus): ResponseInterface
