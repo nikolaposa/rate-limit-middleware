@@ -26,7 +26,7 @@ mechanism for composing middleware known as *piping*.
 
 ### Full example
 
-Following examples demonstrate how `RateLimitMiddleware` can be used in Mezzio-based 
+Following examples demonstrate how `RateLimitMiddleware` can be used in a [Mezzio](https://docs.mezzio.dev/mezzio/)-based 
 application, but the same principle applies to any middleware framework.
 
 **dependencies.php**
