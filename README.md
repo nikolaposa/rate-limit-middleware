@@ -7,7 +7,7 @@
 [![PDS Skeleton](https://img.shields.io/badge/pds-skeleton-blue.svg)](https://github.com/php-pds/skeleton)
 
 
-PSR-15 middleware for rate limiting API or other application endpoints.
+PSR-15 middleware for rate limiting API or other application endpoints. Sits on top of general purpose [Rate Limiter](https://github.com/nikolaposa/rate-limit).
 
 ## Installation
 
