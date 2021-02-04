@@ -1,6 +1,6 @@
 # Rate Limit Middleware
 
-[![Build Status](https://travis-ci.com/nikolaposa/rate-limit-middleware.svg?branch=master)](https://travis-ci.com/nikolaposa/rate-limit-middleware)
+[![Build Status](https://github.com/nikolaposa/rate-limit-middleware/workflows/Build/badge.svg?branch=master)](https://github.com/nikolaposa/rate-limit-middleware/actions)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/nikolaposa/rate-limit-middleware/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/nikolaposa/rate-limit-middleware/?branch=master)
 [![Code Coverage](https://scrutinizer-ci.com/g/nikolaposa/rate-limit-middleware/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/nikolaposa/rate-limit-middleware/?branch=master)
 [![Latest Stable Version](https://poser.pugx.org/nikolaposa/rate-limit-middleware/v/stable)](https://packagist.org/packages/nikolaposa/rate-limit-middleware)
