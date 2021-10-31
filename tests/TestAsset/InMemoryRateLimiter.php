@@ -12,8 +12,7 @@ use RateLimit\Status;
 
 final class InMemoryRateLimiter implements RateLimiter, SilentRateLimiter
 {
-    /** @var array */
-    private $store = [];
+    private array $store = [];
 
     public function limit(string $identifier, Rate $rate): void
     {

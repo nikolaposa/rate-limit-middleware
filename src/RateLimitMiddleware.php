@@ -18,20 +18,11 @@ final class RateLimitMiddleware implements MiddlewareInterface
     public const HEADER_REMAINING = 'X-RateLimit-Remaining';
     public const HEADER_RESET = 'X-RateLimit-Reset';
 
-    /** @var SilentRateLimiter */
-    private $rateLimiter;
-
-    /** @var string */
-    private $endpointName;
-
-    /** @var Rate */
-    private $rate;
-
-    /** @var ResolveUserIdentity */
-    private $resolveUserIdentity;
-
-    /** @var RequestHandlerInterface */
-    private $limitExceededHandler;
+    private SilentRateLimiter $rateLimiter;
+    private string $endpointName;
+    private Rate $rate;
+    private ResolveUserIdentity $resolveUserIdentity;
+    private RequestHandlerInterface $limitExceededHandler;
 
     public function __construct(
         SilentRateLimiter $rateLimiter,
