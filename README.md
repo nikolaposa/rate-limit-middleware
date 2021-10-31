@@ -50,10 +50,11 @@ return [
             ResolveUserIdentity::class => ResolveIpAddressAsUserIdentity::class,
         ],
         'factories'  => [
-            RateLimiter::class => function () {
-                $redis = new \Redis();
-                $redis->connect('127.0.0.1');
-                return new RedisRateLimiter($redis, 'rate_limit:');
+            'RateLimit\\Strategy\\Api' => function (ContainerInterface $container) {
+                return new RedisRateLimiter(Rate::perSecond(5), $container->get(Redis::class), 'rate_limit:api:');
+            },
+            'RateLimit\\Strategy\\CreatePost' => function (ContainerInterface $container) {
+                return new RedisRateLimiter(Rate::perDay(20), $container->get(Redis::class), 'rate_limit:web:post');
             },
             // default limit exceeded handler; anonymous class is used only for the sake 
             // of simplicity of the example
@@ -66,20 +67,18 @@ return [
                 };
             },
             // rate limit middleware for different endpoints
-            'RateLimit\\CreatePostRateLimitMiddleware' => function (ContainerInterface $container) {
+            'RateLimit\\ApiRateLimitMiddleware' => function (ContainerInterface $container) {
                 return new RateLimitMiddleware(
-                   $container->get(RateLimiter::class),
-                   'post.create',
-                   Rate::perSecond(5),
+                   $container->get('RateLimiter\\Strategy\\Api'),
+                   'api',
                    $container->get(ResolveUserIdentity::class),
                    $container->get('RateLimit\\LimitExceededRequestHandler')
                );
             },
-            'RateLimit\\ApiRateLimitMiddleware' => function (ContainerInterface $container) {
+            'RateLimit\\CreatePostRateLimitMiddleware' => function (ContainerInterface $container) {
                 return new RateLimitMiddleware(
-                   $container->get(RateLimiter::class),
-                   'api',
-                   Rate::perMinute(20),
+                   $container->get('RateLimiter\\Strategy\\CreatePost'),
+                   'post.create',
                    $container->get(ResolveUserIdentity::class),
                    $container->get('RateLimit\\LimitExceededRequestHandler')
                );
