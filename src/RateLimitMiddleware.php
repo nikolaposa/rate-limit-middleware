@@ -20,20 +20,17 @@ final class RateLimitMiddleware implements MiddlewareInterface
 
     private SilentRateLimiter $rateLimiter;
     private string $endpointName;
-    private Rate $rate;
     private ResolveUserIdentity $resolveUserIdentity;
     private RequestHandlerInterface $limitExceededHandler;
 
     public function __construct(
         SilentRateLimiter $rateLimiter,
         string $endpointName,
-        Rate $rate,
         ResolveUserIdentity $resolveUserIdentity,
         RequestHandlerInterface $limitExceededHandler
     ) {
         $this->rateLimiter = $rateLimiter;
         $this->endpointName = $endpointName;
-        $this->rate = $rate;
         $this->resolveUserIdentity = $resolveUserIdentity;
         $this->limitExceededHandler = $limitExceededHandler;
     }
@@ -42,7 +39,7 @@ final class RateLimitMiddleware implements MiddlewareInterface
     {
         $identifier = $this->getIdentifier($request);
 
-        $status = $this->rateLimiter->limitSilently($identifier, $this->rate);
+        $status = $this->rateLimiter->limitSilently($identifier);
 
         $response = $status->limitExceeded()
             ? $this->limitExceededHandler->handle($request)->withStatus(429)

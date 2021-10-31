@@ -21,7 +21,7 @@
   "require": {
     "php": "^7.4 || ^8.0",
     "beberlei/assert": "^3.2",
-    "nikolaposa/rate-limit": "^2.0",
+    "nikolaposa/rate-limit": "^3.0",
     "psr/http-server-middleware": "^1.0"
   },
   "require-dev": {

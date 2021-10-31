@@ -10,17 +10,14 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
+use RateLimit\InMemoryRateLimiter;
 use RateLimit\Middleware\RateLimitMiddleware;
 use RateLimit\Middleware\ResolveIpAddressAsUserIdentity;
-use RateLimit\Middleware\Tests\TestAsset\InMemoryRateLimiter;
 use RateLimit\Rate;
 use RateLimit\SilentRateLimiter;
 
 class RateLimitMiddlewareTest extends TestCase
 {
-    /** @var SilentRateLimiter */
-    protected $rateLimiter;
-
     /** @var RequestHandlerInterface */
     protected $limitExceededHandler;
 
@@ -32,7 +29,6 @@ class RateLimitMiddlewareTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->rateLimiter = new InMemoryRateLimiter();
         $this->limitExceededHandler = new class implements RequestHandlerInterface {
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
@@ -48,15 +44,19 @@ class RateLimitMiddlewareTest extends TestCase
         };
     }
 
+    protected function getRateLimiter(Rate $rate): SilentRateLimiter
+    {
+        return new InMemoryRateLimiter($rate);
+    }
+
     /**
      * @test
      */
     public function it_sets_rate_limit_headers(): void
     {
         $rateLimitMiddleware = new RateLimitMiddleware(
-            $this->rateLimiter,
+            $this->getRateLimiter(Rate::perMinute(3)),
             'api',
-            Rate::perMinute(3),
             new ResolveIpAddressAsUserIdentity(),
             $this->limitExceededHandler
         );
@@ -77,9 +77,8 @@ class RateLimitMiddlewareTest extends TestCase
     public function it_sets_appropriate_response_status_when_limit_is_reached(): void
     {
         $rateLimitMiddleware = new RateLimitMiddleware(
-            $this->rateLimiter,
+            $this->getRateLimiter(Rate::perMinute(2)),
             'api',
-            Rate::perMinute(2),
             new ResolveIpAddressAsUserIdentity(),
             $this->limitExceededHandler
         );
@@ -98,9 +97,8 @@ class RateLimitMiddlewareTest extends TestCase
     public function it_resets_limit_after_rate_interval(): void
     {
         $rateLimitMiddleware = new RateLimitMiddleware(
-            $this->rateLimiter,
+            $this->getRateLimiter(Rate::perSecond(1)),
             'api_create_user',
-            Rate::perSecond(1),
             new ResolveIpAddressAsUserIdentity(),
             $this->limitExceededHandler
         );
@@ -119,9 +117,8 @@ class RateLimitMiddlewareTest extends TestCase
     public function it_invokes_limit_exceeded_handler(): void
     {
         $rateLimitMiddleware = new RateLimitMiddleware(
-            $this->rateLimiter,
+            $this->getRateLimiter(Rate::perSecond(1)),
             'api_create_user',
-            Rate::perSecond(1),
             new ResolveIpAddressAsUserIdentity(),
             $this->limitExceededHandler
         );
